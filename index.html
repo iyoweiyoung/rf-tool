@@ -6,7 +6,12 @@
 <title>RF Link Budget</title>
 <style>
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 16px; max-width: 720px }
-  h1 { font-size: 20px; margin: 0 0 12px }
+  h1 {
+  white-space: nowrap;
+  line-height: 1.1;
+  margin: 0 0 12px;
+  font-size: clamp(18px, 6vw, 36px);
+}
   fieldset { border: 1px solid #ccc; border-radius: 8px; padding: 12px; margin: 0 0 12px }
   label { display: block; margin: 8px 0 4px }
   input, select { width: 100%; padding: 8px; box-sizing: border-box }
