@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>RF Link Budget</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 16px; max-width: 720px }
+  h1 { font-size: 20px; margin: 0 0 12px }
+  fieldset { border: 1px solid #ccc; border-radius: 8px; padding: 12px; margin: 0 0 12px }
+  label { display: block; margin: 8px 0 4px }
+  input, select { width: 100%; padding: 8px; box-sizing: border-box }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+  .btn { padding: 10px; width: 100%; }
+  .out { background: #f6f6f6; padding: 12px; border-radius: 8px; }
+  small { color: #666 }
+</style>
+</head>
+<body>
+<h1>RF Link Budget</h1>
+
+<fieldset>
+  <legend>基本參數</legend>
+  <div class="row">
+    <div>
+      <label>頻率</label>
+      <input id="freq" type="number" value="28" step="0.01" />
+    </div>
+    <div>
+      <label>單位</label>
+      <select id="freqUnit">
+        <option value="GHz" selected>GHz</option>
+        <option value="MHz">MHz</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <label>距離</label>
+      <input id="dist" type="number" value="1" step="0.001" />
+    </div>
+    <div>
+      <label>單位</label>
+      <select id="distUnit">
+        <option value="km" selected>km</option>
+        <option value="m">m</option>
+      </select>
+    </div>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>功率與天線</legend>
+  <div class="row">
+    <div>
+      <label>Tx Power Pt [dBm]</label>
+      <input id="pt" type="number" value="10" step="0.1" />
+    </div>
+    <div>
+      <label>其他損耗 Lmisc [dB]</label>
+      <input id="lmisc" type="number" value="3" step="0.1" />
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <label>Tx 天線增益 Gt [dBi]</label>
+      <input id="gt" type="number" value="20" step="0.1" />
+    </div>
+    <div>
+      <label>Rx 天線增益 Gr [dBi]</label>
+      <input id="gr" type="number" value="20" step="0.1" />
+    </div>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>雜訊與需求</legend>
+  <div class="row">
+    <div>
+      <label>頻寬 B [MHz]</label>
+      <input id="bw" type="number" value="100" step="0.1" />
+    </div>
+    <div>
+      <label>接收機雜訊指數 NF [dB]</label>
+      <input id="nf" type="number" value="5" step="0.1" />
+    </div>
+  </div>
+  <div class="row">
+    <div>
+      <label>需求 SNR_req [dB] 可選</label>
+      <input id="snrReq" type="number" placeholder="e.g. 10" step="0.1" />
+    </div>
+    <div>
+      <label>保留</label>
+      <input disabled placeholder="暫不使用" />
+    </div>
+  </div>
+</fieldset>
+
+<button class="btn" id="calc">計算</button>
+
+<div class="out" id="result" style="margin-top:12px"></div>
+
+<p><small>
+公式摘要  
+自由空間路徑損耗 Lfs[dB] = 32.44 + 20·log10(f_MHz) + 20·log10(d_km)  
+接收功率 Pr[dBm] = Pt + Gt + Gr − Lfs − Lmisc  
+雜訊功率 N[dBm] = −174 + 10·log10(B_Hz) + NF  
+SNR[dB] = Pr − N
+</small></p>
+
+<script>
+function toMHz(freq, unit) {
+  if (unit === "GHz") return freq * 1000;
+  return freq;
+}
+function toKm(dist, unit) {
+  if (unit === "m") return dist / 1000;
+  return dist;
+}
+function fspl_dB(f_MHz, d_km) {
+  return 32.44 + 20*Math.log10(f_MHz) + 20*Math.log10(d_km);
+}
+function noise_dBm(B_MHz, NF_dB) {
+  const B_Hz = B_MHz * 1e6;
+  return -174 + 10*Math.log10(B_Hz) + NF_dB;
+}
+function fmt(x, n=2){ return Number.isFinite(x) ? x.toFixed(n) : "NaN"; }
+
+document.getElementById('calc').addEventListener('click', () => {
+  const f = parseFloat(document.getElementById('freq').value);
+  const fUnit = document.getElementById('freqUnit').value;
+  const d = parseFloat(document.getElementById('dist').value);
+  const dUnit = document.getElementById('distUnit').value;
+  const Pt = parseFloat(document.getElementById('pt').value);
+  const Gt = parseFloat(document.getElementById('gt').value);
+  const Gr = parseFloat(document.getElementById('gr').value);
+  const Lmisc = parseFloat(document.getElementById('lmisc').value);
+  const B = parseFloat(document.getElementById('bw').value);
+  const NF = parseFloat(document.getElementById('nf').value);
+  const SNRreqStr = document.getElementById('snrReq').value.trim();
+  const hasReq = SNRreqStr.length > 0;
+  const SNRreq = hasReq ? parseFloat(SNRreqStr) : NaN;
+
+  const fMHz = toMHz(f, fUnit);
+  const dKm = toKm(d, dUnit);
+
+  if (!(fMHz > 0 && dKm > 0 && B > 0)) {
+    document.getElementById('result').innerHTML = "請輸入正確數值";
+    return;
+  }
+
+  const Lfs = fspl_dB(fMHz, dKm);
+  const Pr = Pt + Gt + Gr - Lfs - Lmisc;
+  const N = noise_dBm(B, NF);
+  const SNR = Pr - N;
+  let html = `
+    <div><b>自由空間損耗 Lfs</b>: ${fmt(Lfs)} dB</div>
+    <div><b>接收功率 Pr</b>: ${fmt(Pr)} dBm</div>
+    <div><b>雜訊功率 N</b>: ${fmt(N)} dBm</div>
+    <div><b>SNR</b>: ${fmt(SNR)} dB</div>
+  `;
+  if (hasReq && Number.isFinite(SNRreq)) {
+    const margin = SNR - SNRreq;
+    html += `<div><b>Link Margin</b>: ${fmt(margin)} dB</div>`;
+  }
+  document.getElementById('result').innerHTML = html;
+});
+</script>
+</body>
+</html>
