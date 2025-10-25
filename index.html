@@ -12,6 +12,23 @@
   margin: 0 0 12px;
   font-size: clamp(18px, 6vw, 36px);
 }
+.topbar {
+  display: flex;
+  align-items: baseline;       /* 對齊同一高度 */
+  justify-content: space-between; /* 左右分開 */
+  margin-bottom: 12px;
+}
+
+#version {
+  white-space: nowrap;
+  font-size: 0.7em;
+  font-family: monospace;
+  color: #666;
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
   fieldset { border: 1px solid #ccc; border-radius: 8px; padding: 12px; margin: 0 0 12px }
   label { display: block; margin: 8px 0 4px }
   input, select { width: 100%; padding: 8px; box-sizing: border-box }
@@ -22,8 +39,10 @@
 </style>
 </head>
 <body>
-<div id="version">v1.0</div>
-<h1>RF Link Budget</h1>
+<div class="topbar">
+  <h1>RF Link Budget</h1>
+  <span id="version">v1.1</span>
+</div>
 
 <fieldset>
   <legend>基本參數</legend>
